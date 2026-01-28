@@ -27,7 +27,7 @@ After restart, open **Ubuntu** from the Start Menu. It will set up your Linux en
 Inside the Ubuntu terminal:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ruflacket01-spec/omareko-setup/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/ruflacket01-spec/omareko-setup/main/install.sh -o install.sh && bash install.sh
 ```
 
 ---
@@ -35,7 +35,7 @@ curl -fsSL https://raw.githubusercontent.com/ruflacket01-spec/omareko-setup/main
 ## ⚡ One-Line Install (Linux/macOS/WSL2)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ruflacket01-spec/omareko-setup/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/ruflacket01-spec/omareko-setup/main/install.sh -o install.sh && bash install.sh
 ```
 
 ## 📋 What You Need
