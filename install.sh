@@ -5,6 +5,8 @@
 # 
 # Usage: curl -fsSL https://raw.githubusercontent.com/ruflacket01-spec/omareko-setup/main/install.sh | bash
 #
+# Supports: Linux, macOS, Windows (via WSL2)
+#
 
 set -e
 
@@ -17,32 +19,75 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 BOLD='\033[1m'
 
+# Detect OS
+IS_WSL=false
+if grep -qEi "(Microsoft|WSL)" /proc/version 2>/dev/null; then
+    IS_WSL=true
+fi
+
 # Banner
 echo ""
 echo -e "${CYAN}╔════════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${CYAN}║${NC}  ${BOLD}🤵 Welcome to the Omareko AI Assistant Setup!${NC}                 ${CYAN}║${NC}"
 echo -e "${CYAN}║${NC}     Your personal AI butler, powered by free models           ${CYAN}║${NC}"
+if $IS_WSL; then
+echo -e "${CYAN}║${NC}     ${GREEN}✓ WSL2 detected - Windows compatible mode${NC}                 ${CYAN}║${NC}"
+fi
 echo -e "${CYAN}╚════════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
-# Check Node.js
-echo -e "${BLUE}[1/7]${NC} Checking prerequisites..."
-if ! command -v node &> /dev/null; then
-    echo -e "${RED}❌ Node.js not found. Please install Node.js 22+ first:${NC}"
-    echo "   curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -"
-    echo "   sudo apt-get install -y nodejs"
+# Check if running on Windows without WSL
+if [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "win32" ]]; then
+    echo -e "${RED}❌ Native Windows detected. Please use WSL2 instead:${NC}"
+    echo ""
+    echo "   1. Open PowerShell as Administrator"
+    echo "   2. Run: wsl --install"
+    echo "   3. Restart your computer"
+    echo "   4. Open Ubuntu from Start Menu"
+    echo "   5. Run this script again inside WSL2"
+    echo ""
     exit 1
+fi
+
+# Check Node.js
+echo -e "${BLUE}[1/8]${NC} Checking prerequisites..."
+if ! command -v node &> /dev/null; then
+    echo -e "${YELLOW}⚠️  Node.js not found. Installing...${NC}"
+    if $IS_WSL || [[ -f /etc/debian_version ]]; then
+        # Debian/Ubuntu/WSL
+        curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+        sudo apt-get install -y nodejs
+    elif [[ -f /etc/redhat-release ]]; then
+        # RHEL/CentOS/Fedora
+        curl -fsSL https://rpm.nodesource.com/setup_22.x | sudo bash -
+        sudo yum install -y nodejs
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS
+        if command -v brew &> /dev/null; then
+            brew install node@22
+        else
+            echo -e "${RED}Please install Homebrew first: https://brew.sh${NC}"
+            exit 1
+        fi
+    else
+        echo -e "${RED}❌ Please install Node.js 22+ manually: https://nodejs.org${NC}"
+        exit 1
+    fi
 fi
 
 NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
 if [ "$NODE_VERSION" -lt 22 ]; then
-    echo -e "${YELLOW}⚠️  Node.js version $NODE_VERSION detected. Recommended: 22+${NC}"
+    echo -e "${YELLOW}⚠️  Node.js version $NODE_VERSION detected. Upgrading to 22+...${NC}"
+    if $IS_WSL || [[ -f /etc/debian_version ]]; then
+        curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+        sudo apt-get install -y nodejs
+    fi
 fi
 echo -e "${GREEN}✓${NC} Node.js $(node -v) found"
 
 # Ask for OpenRouter API Key
 echo ""
-echo -e "${BLUE}[2/7]${NC} OpenRouter API Key Setup"
+echo -e "${BLUE}[2/8]${NC} OpenRouter API Key Setup"
 echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 echo -e "Get your ${BOLD}FREE${NC} API key at: ${CYAN}https://openrouter.ai/keys${NC}"
@@ -58,16 +103,30 @@ echo -e "${GREEN}✓${NC} API key format validated"
 
 # Install Moltbot CLI
 echo ""
-echo -e "${BLUE}[3/7]${NC} Installing Moltbot CLI..."
+echo -e "${BLUE}[3/8]${NC} Installing Moltbot CLI..."
 curl -fsSL https://molt.bot/install.sh | bash
 
 # Ensure moltbot is in PATH for this script
 export PATH="$HOME/.npm-global/bin:$HOME/.local/bin:$PATH"
 
+# Source bashrc to get moltbot in path
+if [ -f "$HOME/.bashrc" ]; then
+    source "$HOME/.bashrc" 2>/dev/null || true
+fi
+
+# Wait a moment for install to settle
+sleep 2
+
+# Verify moltbot is available
+if ! command -v moltbot &> /dev/null; then
+    echo -e "${YELLOW}Adding moltbot to PATH...${NC}"
+    export PATH="$HOME/.npm-global/bin:$PATH"
+fi
+
 # Configure workspace
 WORKSPACE="$HOME/omareko"
 echo ""
-echo -e "${BLUE}[4/7]${NC} Setting up workspace at ${CYAN}$WORKSPACE${NC}..."
+echo -e "${BLUE}[4/8]${NC} Setting up workspace at ${CYAN}$WORKSPACE${NC}..."
 mkdir -p "$WORKSPACE"
 mkdir -p "$WORKSPACE/memory"
 mkdir -p "$WORKSPACE/skills"
@@ -199,6 +258,7 @@ cat > "$WORKSPACE/memory/$TODAY.md" << MEMORY_EOF
 - Omareko was born today! 🎉
 - Initial setup completed
 - Running on OpenRouter free models
+- Connected via WhatsApp
 
 ## Notes
 First day in the world. Ready to help!
@@ -206,7 +266,7 @@ MEMORY_EOF
 
 # Download free skills
 echo ""
-echo -e "${BLUE}[5/7]${NC} Installing free skills..."
+echo -e "${BLUE}[5/8]${NC} Installing free skills..."
 
 # Weather skill
 mkdir -p "$WORKSPACE/skills/weather"
@@ -232,9 +292,9 @@ echo -e "${GREEN}✓${NC} Skills installed"
 
 # Run moltbot onboard with OpenRouter
 echo ""
-echo -e "${BLUE}[6/7]${NC} Configuring Moltbot with OpenRouter..."
+echo -e "${BLUE}[6/8]${NC} Configuring Moltbot with OpenRouter..."
 
-# Non-interactive onboard
+# Non-interactive onboard (without WhatsApp first)
 moltbot onboard --non-interactive \
   --mode local \
   --auth-choice apiKey \
@@ -248,40 +308,72 @@ moltbot onboard --non-interactive \
   --skip-channels \
   2>&1 || true
 
-# Set a free model as default (meta-llama/llama-3.3-8b-instruct:free)
+# Set a free model as default
 echo ""
-echo -e "${BLUE}[7/7]${NC} Setting up free model defaults..."
-
-# Patch the config to use a free model
+echo -e "${BLUE}[7/8]${NC} Setting up free model defaults..."
 moltbot configure --set "agents.defaults.model.primary=openrouter/meta-llama/llama-3.3-8b-instruct:free" 2>/dev/null || true
 
-# Start the gateway
+# WhatsApp Setup
+echo ""
+echo -e "${BLUE}[8/8]${NC} WhatsApp Setup"
+echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo ""
+echo -e "Now let's connect your WhatsApp!"
+echo ""
+echo -e "${YELLOW}Instructions:${NC}"
+echo "  1. A QR code will appear in your terminal"
+echo "  2. Open WhatsApp on your phone"
+echo "  3. Go to Settings → Linked Devices → Link a Device"
+echo "  4. Scan the QR code"
+echo ""
+read -p "Press ENTER when ready to scan QR code..."
+
+# Start gateway if not running
+moltbot gateway start 2>/dev/null || true
+sleep 3
+
+# WhatsApp login
+echo ""
+echo -e "${CYAN}Scan this QR code with WhatsApp:${NC}"
+echo ""
+moltbot channels login whatsapp 2>&1 || {
+    echo ""
+    echo -e "${YELLOW}If QR didn't appear, run manually later:${NC}"
+    echo -e "  ${CYAN}moltbot channels login whatsapp${NC}"
+}
+
+# Final output
 echo ""
 echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "${GREEN}${BOLD}✅ Omareko is ready!${NC}"
 echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
-echo -e "${BOLD}Quick Start:${NC}"
+echo -e "${BOLD}🎉 You can now chat with Omareko on WhatsApp!${NC}"
 echo ""
-echo -e "  1. ${CYAN}moltbot dashboard${NC}        # Open web chat UI"
-echo -e "  2. ${CYAN}moltbot gateway status${NC}   # Check if running"
-echo -e "  3. ${CYAN}moltbot gateway start${NC}    # Start if not running"
+echo -e "Just send a message to yourself (or the linked number)."
 echo ""
-echo -e "${BOLD}Add channels (optional):${NC}"
+echo -e "${BOLD}Useful commands:${NC}"
 echo ""
-echo -e "  ${CYAN}moltbot configure --section channels${NC}  # Add Telegram/WhatsApp/Discord"
+echo -e "  ${CYAN}moltbot dashboard${NC}          # Open web chat UI"
+echo -e "  ${CYAN}moltbot gateway status${NC}     # Check if running"
+echo -e "  ${CYAN}moltbot gateway start${NC}      # Start the assistant"
+echo -e "  ${CYAN}moltbot gateway stop${NC}       # Stop the assistant"
+echo -e "  ${CYAN}moltbot channels login whatsapp${NC}  # Re-link WhatsApp"
 echo ""
 echo -e "${BOLD}Workspace:${NC} $WORKSPACE"
 echo ""
-echo -e "${BOLD}Free Models Available (OpenRouter):${NC}"
+if $IS_WSL; then
+echo -e "${BOLD}Windows Tips:${NC}"
+echo -e "  • Keep this WSL terminal open (or run as service)"
+echo -e "  • Access from Windows: ${CYAN}\\\\wsl$\\Ubuntu\\home\\$USER\\omareko${NC}"
+echo ""
+fi
+echo -e "${BOLD}Free Models Available:${NC}"
 echo -e "  • meta-llama/llama-3.3-8b-instruct:free (default)"
 echo -e "  • google/gemma-2-9b-it:free"
 echo -e "  • mistralai/mistral-7b-instruct:free"
-echo -e "  • qwen/qwen2.5-7b-instruct:free"
-echo ""
-echo -e "Switch model: ${CYAN}moltbot configure --set agents.defaults.model.primary=openrouter/MODEL_NAME${NC}"
 echo ""
 echo -e "${YELLOW}Tip:${NC} Edit ${CYAN}$WORKSPACE/USER.md${NC} to tell Omareko about yourself!"
 echo ""
-echo -e "🤖 ${BOLD}Say hi to Omareko:${NC} ${CYAN}moltbot dashboard${NC}"
+echo -e "🤖 ${BOLD}Say hi on WhatsApp!${NC}"
 echo ""
