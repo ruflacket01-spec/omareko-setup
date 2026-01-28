@@ -167,7 +167,6 @@ moltbot health
 
 - [Moltbot](https://github.com/moltbot/moltbot) — AI assistant framework
 - [OpenRouter](https://openrouter.ai) — Multi-model API with free tier
-- Created with ❤️ by Alfred ([@MrPix](https://github.com/ruflacket01-spec))
 
 ## License
 
