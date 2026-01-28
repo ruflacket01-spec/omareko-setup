@@ -93,7 +93,7 @@ echo ""
 echo -e "Get your ${BOLD}FREE${NC} API key at: ${CYAN}https://openrouter.ai/keys${NC}"
 echo -e "(OpenRouter has free models like Llama, Gemma, etc.)"
 echo ""
-read -p "Paste your OpenRouter API key (sk-or-...): " OPENROUTER_KEY
+read -p "Paste your OpenRouter API key (sk-or-...): " OPENROUTER_KEY < /dev/tty
 
 if [[ ! "$OPENROUTER_KEY" =~ ^sk-or- ]]; then
     echo -e "${RED}❌ Invalid key format. Should start with 'sk-or-'${NC}"
@@ -326,7 +326,7 @@ echo "  2. Open WhatsApp on your phone"
 echo "  3. Go to Settings → Linked Devices → Link a Device"
 echo "  4. Scan the QR code"
 echo ""
-read -p "Press ENTER when ready to scan QR code..."
+read -p "Press ENTER when ready to scan QR code..." < /dev/tty
 
 # Start gateway if not running
 moltbot gateway start 2>/dev/null || true
